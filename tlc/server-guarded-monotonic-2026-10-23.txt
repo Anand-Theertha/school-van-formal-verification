@@ -1,0 +1,76 @@
+﻿TLC2 Version 2.20 of Day Month 20?? (rev: 4570af4)
+Running breadth-first search Model-Checking with fp 54 and seed -4726255539811537191 with 1 worker on 12 cores with 5397MB heap and 64MB offheap memory [pid: 55268] (Windows 11 10.0 amd64, Eclipse Adoptium 25.0.4.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file C:\Code\school-van-formal-verification\SchoolVanTracker_ServerGuarded.tla
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-11838679208175340042\Naturals.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/Naturals.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-11838679208175340042\_TLCTrace.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/_TLCTrace.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-11838679208175340042\TLC.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/TLC.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-11838679208175340042\TLCExt.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/TLCExt.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-11838679208175340042\Sequences.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/Sequences.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-11838679208175340042\FiniteSets.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/FiniteSets.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-11838679208175340042\Integers.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/Integers.tla)
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module Integers
+Semantic processing of module TLCExt
+Semantic processing of module _TLCTrace
+Semantic processing of module SchoolVanTracker_ServerGuarded
+Starting... (2026-10-23 15:07:34)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-23 15:07:35.
+Error: Action property MonotonicDisplay is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ network_buffer = {}
+/\ driver_seq = 0
+/\ server_ack_seq = 0
+/\ parent_view_seq = 0
+/\ parent_channel = {}
+
+State 2: <DriverSend line 24, col 5 to line 27, col 68 of module SchoolVanTracker_ServerGuarded>
+/\ network_buffer = {1}
+/\ driver_seq = 1
+/\ server_ack_seq = 0
+/\ parent_view_seq = 0
+/\ parent_channel = {}
+
+State 3: <DriverSend line 24, col 5 to line 27, col 68 of module SchoolVanTracker_ServerGuarded>
+/\ network_buffer = {1, 2}
+/\ driver_seq = 2
+/\ server_ack_seq = 0
+/\ parent_view_seq = 0
+/\ parent_channel = {}
+
+State 4: <Next line 50, col 8 to line 50, col 49 of module SchoolVanTracker_ServerGuarded>
+/\ network_buffer = {1, 2}
+/\ driver_seq = 2
+/\ server_ack_seq = 1
+/\ parent_view_seq = 0
+/\ parent_channel = {1}
+
+State 5: <Next line 50, col 8 to line 50, col 49 of module SchoolVanTracker_ServerGuarded>
+/\ network_buffer = {1, 2}
+/\ driver_seq = 2
+/\ server_ack_seq = 2
+/\ parent_view_seq = 0
+/\ parent_channel = {1, 2}
+
+State 6: <Next line 51, col 8 to line 51, col 49 of module SchoolVanTracker_ServerGuarded>
+/\ network_buffer = {1, 2}
+/\ driver_seq = 2
+/\ server_ack_seq = 2
+/\ parent_view_seq = 2
+/\ parent_channel = {1, 2}
+
+State 7: <Next line 51, col 8 to line 51, col 49 of module SchoolVanTracker_ServerGuarded>
+/\ network_buffer = {1, 2}
+/\ driver_seq = 2
+/\ server_ack_seq = 2
+/\ parent_view_seq = 1
+/\ parent_channel = {1, 2}
+
+251 states generated, 97 distinct states found, 43 states left on queue.
+The depth of the complete state graph search is 7.
+Finished in 00s at (2026-10-23 15:07:35)
+Trace exploration spec path: .\SchoolVanTracker_ServerGuarded_TTrace_1792748254.tla

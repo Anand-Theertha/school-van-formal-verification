@@ -1,0 +1,324 @@
+% TechRxiv preprint — compile with pdfLaTeX (Overleaf: New Project → Upload Project)
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{microtype}
+
+\geometry{margin=1in}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue,
+  pdftitle={School Van Tracking: Ordering Guarantees Under Unreliable Networks},
+  pdfauthor={Anand Theertha}
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\title{School Van Tracking: Ordering Guarantees Under Unreliable Networks}
+\author{Anand Theertha\\[0.5em]\normalsize Independent researcher}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study the telemetry protocol of a real-time school-van tracking application in which a driver's phone streams GPS positions to parents over unreliable mobile networks. Using TLA+ and the TLC model checker, we model \emph{two} unordered channels (driver$\rightarrow$server and server$\rightarrow$parent) with loss on the uplink and unbounded redelivery of the same sequence number---receives do not remove frames from the channel sets. We verify that the position shown to a parent never moves backward (\texttt{MonotonicDisplay}). TLC reports a violation in the unguarded baseline; a seven-state counterexample is documented with raw logs in the public artifact. An ablation study shows that, under this downlink model, \emph{only the parent display guard is necessary} to restore monotonicity: a server-only guard still allows the map to jump backward when frames~1 and~2 both sit on the parent channel. Production deploys \emph{both} guards so server state and ancillary consumers (e.g., trip history) stay consistent, not because the server guard alone secures the live map. We also report fault-injection tests on the implementation (duplicate, reordered, and batched frames). We state precisely what the model does and does not prove and outline follow-on work (session epoch, shared acknowledgment state, retransmission).
+\end{abstract}
+
+\noindent\textbf{Index Terms---}formal verification, TLA+, model checking, GPS telemetry, mobile networks, message ordering, transportation systems.
+
+\section{Introduction}
+\label{sec:intro}
+
+Parents who track a school van need a map position that reflects the vehicle's recent path. If the displayed position jumps \emph{backward} along the route---because an older GPS frame is applied after a newer one---they may infer the wrong direction, stop, or miss a pickup window. Cellular dead zones, reconnect bursts, and multi-node ingestion make such orderings plausible even when each TCP or WebSocket connection is in-order locally.
+
+This paper is an applied case study: we (1)~formalize a minimal telemetry protocol and channel assumptions in TLA+, (2)~use TLC to find a monotonicity violation and to compare server-side versus client-side sequence guards, and (3)~relate the model to a deployed Node.js/React Native stack through fault injection. Our contributions are:
+\begin{itemize}[noitemsep]
+  \item A two-channel TLA+ model (lossy uplink, unordered downlink, redelivery) aligned with reconnect and multi-publisher effects, with reproducible TLC logs.
+  \item A guard \emph{ablation}: under the stated downlink, the parent display guard alone restores \texttt{MonotonicDisplay}; server-only guarding does not.
+  \item A concise mapping from abstract violations to production mitigations and known remaining gaps (epoch on driver restart, cross-node races, liveness without acks).
+\end{itemize}
+
+Artifact: \url{https://github.com/Anand-Theertha/school-van-formal-verification} (release v1.2); archived copy DOI \url{https://doi.org/10.5281/zenodo.23567442}.
+
+\section{System overview}
+\label{sec:system}
+
+The driver app samples GPS every two seconds and sends each position as a frame with trip id, monotonic \texttt{seq\_id}, timestamp, and coordinates:
+\begin{enumerate}[noitemsep]
+  \item Driver app (React Native) sends frames over Socket.IO on secure WebSockets.
+  \item One or more Node.js ingestion nodes validate the token, persist to PostgreSQL/PostGIS, update a current-trip cache, and publish via a Redis pub/sub adapter.
+  \item Parent apps subscribed to the trip receive the broadcast and render the position.
+\end{enumerate}
+
+The update rate is bounded by the sampling interval; measured average end-to-end latency was about 250\,ms on 4G in testing. Appendix~\ref{app:arch} summarizes stack, schema, and security choices.
+
+\section{Baseline protocol and failure model}
+\label{sec:failures}
+
+\textbf{Baseline protocol.} The server accepts each valid frame and broadcasts it. Without sequence guards, the parent display follows whatever arrives on the downlink.
+
+\textbf{Failure model.}
+\begin{itemize}[noitemsep]
+  \item Connections drop and reconnect; buffered frames may arrive in bursts.
+  \item Application-level retries can duplicate deliveries.
+  \item Frames from an old socket can arrive after frames from a new connection.
+  \item Several server nodes can process frames for the same trip concurrently.
+\end{itemize}
+
+\textbf{Out of scope.} GPS error, dead reckoning, map matching, and malicious clients.
+
+\section{Formal model (TLA+)}
+\label{sec:model}
+
+\subsection{Channel abstraction}
+
+TCP and WebSockets do not reorder frames within one connection. We nevertheless use \emph{unordered} channels because that is a conservative abstraction of overlapping old and new sockets during reconnect, application retries, and parallel processing on multiple ingestion nodes.
+
+We use two channels:
+\begin{itemize}[noitemsep]
+  \item \textbf{Uplink} (\texttt{network\_buffer}): driver$\rightarrow$server; \textbf{lossy} (\texttt{NetworkDrop}).
+  \item \textbf{Downlink} (\texttt{parent\_channel}): server$\rightarrow$parent; \textbf{unordered} in the model.
+\end{itemize}
+
+\textbf{Deployment note.} Redis pub/sub may preserve order from a \emph{single} publisher. We model an unordered downlink because multiple ingestion nodes can publish toward the same trip, so parents need not see frames in send order.
+
+\textbf{Duplication.} Each channel is a set of sequence numbers; receives do \emph{not} remove an element, so the same \texttt{seq\_id} can be delivered arbitrarily many times (redelivery). We do not model two distinct in-flight copies of the same \texttt{seq\_id} in one set (a multiset would be needed for that).
+
+A counterexample in this model shows the protocol \emph{abstract} can violate a property under these assumptions; it is not a proof about the live cellular network or the full production codebase.
+
+\subsection{State variables}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Variable & Meaning \\
+\midrule
+\texttt{driver\_seq} & Latest sequence number produced by the driver \\
+\texttt{network\_buffer} & Set of sequence numbers in flight on the uplink \\
+\texttt{server\_ack\_seq} & Highest sequence number the server has accepted \\
+\texttt{parent\_channel} & Set of sequence numbers forwarded toward the parent \\
+\texttt{parent\_view\_seq} & Sequence number currently displayed \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Actions}
+
+The specifications include exactly these actions (no separate ``connection drop'' or ``duplicate'' operators):
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Action & Description \\
+\midrule
+\texttt{DriverSend} & Driver produces the next frame (\texttt{driver\_seq} increases, up to \texttt{MaxSeq}) \\
+\texttt{NetworkDrop} & Uplink loss: remove one frame from \texttt{network\_buffer} \\
+\texttt{ServerReceive} & Server reads one frame from \texttt{network\_buffer}; may append to \texttt{parent\_channel} \\
+\texttt{ParentReceive} & Parent reads one frame from \texttt{parent\_channel}; updates \texttt{parent\_view\_seq} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Modules (ablation).} \texttt{SchoolVanTracker\_Baseline} (no guards); \texttt{SchoolVanTracker\_ServerGuarded} (server guard only); \texttt{SchoolVanTracker\_ParentGuarded} (parent guard only); \texttt{SchoolVanTracker\_Guarded} (both guards, as deployed).
+
+\subsection{Bounds and specification}
+
+\texttt{MaxSeq}~=~3 in all modules (finite state space for TLC). There is no bound on drops or redeliveries beyond finiteness of the model. \texttt{Spec == Init /\ [][Next]\_vars} with \textbf{no fairness} hypothesis for the safety runs below. TLC configurations set \texttt{CHECK\_DEADLOCK FALSE} (terminal states exist when the driver has finished and both channels are empty).
+
+\section{Properties}
+\label{sec:properties}
+
+\textbf{Safety (action property):} the displayed position never moves backward.
+\begin{lstlisting}
+MonotonicDisplay == [][parent_view_seq' >= parent_view_seq]_parent_view_seq
+\end{lstlisting}
+
+\textbf{Safety (invariant):} only positions the driver has produced are displayed.
+\begin{lstlisting}
+NoFutureFrame == parent_view_seq <= driver_seq
+\end{lstlisting}
+
+\textbf{Liveness (not checked in current TLC configs):}
+\begin{lstlisting}
+FinalDelivery == (driver_seq = MaxSeq) ~> (parent_view_seq = MaxSeq)
+\end{lstlisting}
+
+\texttt{FinalDelivery} requires stronger fairness, bounded loss, or retransmission. Section~\ref{sec:limits} discusses acknowledgments for a future model revision. The v1 TLC runs check \texttt{MonotonicDisplay} and \texttt{NoFutureFrame} only.
+
+\section{Model checking results}
+\label{sec:results}
+
+\textbf{Environment.} TLC~2.20 (\texttt{tla2tools.jar} via VS Code TLA+ extension), Temurin JDK~25, Windows~11, 2026-10-23. Raw logs ship in directory \texttt{tlc/} (Appendix~\ref{app:logs}).
+
+\subsection{Baseline protocol}
+
+TLC \textbf{violates} \texttt{MonotonicDisplay}. Shortest counterexample: \textbf{7 states} (six steps: two \texttt{DriverSend}, two server receives, two parent receives).
+
+\begin{center}
+\begin{tabular}{@{}cl@{}}
+\toprule
+State & Summary \\
+\midrule
+1 & Init \\
+2--3 & Driver sends seq~1 and~2; \texttt{network\_buffer = \{1,2\}} \\
+4--5 & Server accepts 1 then~2; \texttt{parent\_channel = \{1,2\}} \\
+6 & Parent displays 2 (\texttt{parent\_view\_seq = 2}) \\
+7 & Parent applies 1 $\rightarrow$ \texttt{parent\_view\_seq = 1} (\textbf{violation}) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Reordering on the \emph{downlink} suffices; uplink duplication is not required for this trace. At error: 282 states generated, 122 distinct (search stopped with 64 states left on queue). Trace depth~7.
+
+\subsection{Guard ablation (\texttt{MonotonicDisplay})}
+
+\begin{center}
+\begin{tabular}{@{}lllrrr@{}}
+\toprule
+Variant & Module & Result & Generated & Distinct & Depth \\
+\midrule
+No guards & Baseline & Violated & 282 & 122$^\dagger$ & 7 \\
+Server only & ServerGuarded & Violated & 251 & 97$^\dagger$ & 7 \\
+Parent only & ParentGuarded & Holds & 1726 & 347 & 11 \\
+Both (v1) & Guarded & Holds & 922 & 199 & 11 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent$^\dagger$First violation stops exploration early; distinct counts are not the full state graph.
+
+\textbf{Conclusion.} Under an unordered \texttt{parent\_channel}, the \textbf{parent guard is necessary} for \texttt{MonotonicDisplay}. The server guard alone does not prevent backward map updates. Both guards remain appropriate in production for server/history consistency and stale-frame filtering on the uplink.
+
+``Holds'' means no violation within \texttt{MaxSeq = 3} and the stated channel model; it is not a proof for unbounded sequences or all real-network behaviors.
+
+\subsection{Liveness}
+
+\texttt{FinalDelivery} was not run in the bundled \texttt{.cfg} files. Informally, without driver-side retention and server acknowledgments, a lost final frame can leave the parent view stalled (aligned with injection test T6 in Section~\ref{sec:injection}). That is an explicit v1 trade-off: safety properties were the focus of model checking.
+
+\section{Protocol revisions (production v1)}
+\label{sec:fixes}
+
+\textbf{Server filter.} Drop any frame whose sequence number is less than or equal to the server's current highest seen value for that trip (uplink guard).
+
+\textbf{Parent guard.} Render a frame only if its sequence number is greater than the last one displayed.
+
+TLC ablation (Section~\ref{sec:results}) justifies treating the parent guard as necessary for monotonic \emph{display} under the modeled downlink; the server guard supports consistent server state and consumers other than the live map.
+
+\section{Implementation validation (fault injection)}
+\label{sec:injection}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lllcc@{}}
+\toprule
+Test & Injected fault & Expected after fix & Baseline & v1 \\
+\midrule
+T1 & Old frame after newer & No backward jump & 14 jumps & 0 jumps \\
+T2 & Duplicate frame & No visible change & UI flickers & Ignored \\
+T3 & Burst after reconnect & Final position correct & Jumps & Correct \\
+T4 & Driver restart, counter resets & Frames accepted & Accepted & Dropped (stale) \\
+T5 & Two nodes concurrent & No backward jump & Jumps & Race condition \\
+T6 & Last frame lost before reconnect & Final position shown & Stalls & Stalls \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Limitations and future work}
+\label{sec:limits}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Session epoch} (T4): local \texttt{seq\_id} reset without epoch can freeze the trip.
+  \item \textbf{Idempotent history:} store all frames with \((\text{trip}, \text{epoch}, \text{sequence})\); separate history from live broadcast.
+  \item \textbf{Shared server state} (T5): atomic Redis update for highest seen seq across nodes.
+  \item \textbf{Acknowledgments and retransmission} (T6): needed for \texttt{FinalDelivery}-style liveness.
+  \item \textbf{Model:} optional multiset for duplicate in-flight copies; explicit downlink loss; per-action fairness for liveness checks.
+\end{itemize}
+
+\section{Related work}
+\label{sec:related}
+
+This work sits at the intersection of applied formal methods and distributed telemetry. Lamport's TLA+ and TLC toolchain~\cite{lamport2002} is the verification backbone. Kleppmann~\cite{kleppmann2017} discusses ordering, idempotency, and stream processing patterns relevant to guarded ingestion. Lamport's logical clocks~\cite{lamport1978} motivate sequence-based reasoning without claiming equivalence to our guards. Beschastnikh et al.~\cite{beschastnikh2016} survey debugging distributed systems; our counterexample traces play a similar explanatory role at design time.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Unreliable networks and multi-node publish paths can expose parents to non-monotonic map updates even when each connection is locally ordered. A small TLA+ model with explicit uplink loss and an unordered downlink yields a reproducible seven-state violation and a guard ablation that clarifies \emph{where} monotonicity must be enforced: at the parent display under our assumptions. Production adds a server guard for broader consistency; closing epoch, cross-node, and liveness gaps remains future work. Artifacts and TLC logs are public for independent replay.
+
+\section*{Data and code availability}
+
+TLA+ modules, TLC configuration files, unedited console logs (\texttt{tlc/}), modeling notes (\texttt{MODELING.md}), and this preprint source are available at \url{https://github.com/Anand-Theertha/school-van-formal-verification}. A versioned archive is deposited at Zenodo (DOI \url{https://doi.org/10.5281/zenodo.23567442}).
+
+\begin{thebibliography}{9}
+
+\bibitem{lamport2002}
+L.~Lamport,
+\emph{Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers},
+Addison-Wesley, 2002.
+
+\bibitem{kleppmann2017}
+M.~Kleppmann,
+\emph{Designing Data-Intensive Applications},
+O'Reilly, 2017.
+
+\bibitem{lamport1978}
+L.~Lamport,
+``Time, clocks, and the ordering of events in a distributed system,''
+\emph{Communications of the ACM}, vol.~21, no.~7, pp.~558--565, 1978.
+
+\bibitem{beschastnikh2016}
+I.~Beschastnikh et al.,
+``Debugging distributed systems,''
+\emph{Communications of the ACM}, vol.~59, no.~8, pp.~56--65, 2016.
+
+\end{thebibliography}
+
+\appendix
+
+\section{Architecture and schema}
+\label{app:arch}
+
+\textbf{Stack.} Node.js/Express; Socket.IO over WSS with Redis pub/sub; PostgreSQL~15 with PostGIS; React Native driver and parent apps.
+
+\textbf{Schema (conceptual).} Users, routes, children, trips, and location samples keyed by trip with monotonic \texttt{seq\_id}, geospatial columns (PostGIS), and time partitioning for retention.
+
+\textbf{Security.} JWT (RS256); bcrypt password hashing; role-based publish/subscribe; TLS~1.3 on public endpoints.
+
+\textbf{Design decisions.} WebSockets over polling for low latency; PostgreSQL/PostGIS over document stores for geospatial queries; shared ordering responsibility across driver buffering, server filtering, and parent display guards.
+
+\section{TLC log excerpt (baseline violation)}
+\label{app:logs}
+
+The following lines are excerpted from \texttt{tlc/baseline-monotonic-2026-10-23.txt} (TLC~2.20, 2026-10-23). Full logs for baseline, server-guarded, parent-guarded, and both-guarded runs are in the repository.
+
+\begin{lstlisting}[caption={Excerpt: error state (state 7).}]
+7: <Next line 55, col 8 to line 55, col 49 of module SchoolVanTracker_Baseline>
+/\ network_buffer = {1, 2}
+/\ driver_seq = 2
+/\ server_ack_seq = 2
+/\ parent_view_seq = 1
+/\ parent_channel = {1, 2}
+
+282 states generated, 122 distinct states found, 64 states left on queue.
+The depth of the complete state graph search is 7.
+Finished in 8140ms at (2026-10-23 15:02:04)
+\end{lstlisting}
+
+\end{document}

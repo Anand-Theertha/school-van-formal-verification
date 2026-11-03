@@ -1,0 +1,29 @@
+﻿TLC2 Version 2.20 of Day Month 20?? (rev: 4570af4)
+Running breadth-first search Model-Checking with fp 49 and seed 6344075933417507274 with 1 worker on 12 cores with 5397MB heap and 64MB offheap memory [pid: 34856] (Windows 11 10.0 amd64, Eclipse Adoptium 25.0.4.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file C:\Code\school-van-formal-verification\SchoolVanTracker_ParentGuarded.tla
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-15405578727957101455\Naturals.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/Naturals.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-15405578727957101455\_TLCTrace.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/_TLCTrace.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-15405578727957101455\TLC.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/TLC.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-15405578727957101455\TLCExt.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/TLCExt.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-15405578727957101455\Sequences.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/Sequences.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-15405578727957101455\FiniteSets.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/FiniteSets.tla)
+Parsing file C:\Users\anand\AppData\Local\Temp\tlc-15405578727957101455\Integers.tla (jar:file:/C:/Users/anand/.cursor/extensions/alygin.vscode-tlaplus-nightly-2024.8.1506-universal/tools/tla2tools.jar!/tla2sany/StandardModules/Integers.tla)
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module Integers
+Semantic processing of module TLCExt
+Semantic processing of module _TLCTrace
+Semantic processing of module SchoolVanTracker_ParentGuarded
+Starting... (2026-10-23 15:07:35)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-23 15:07:36.
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 2.6E-14
+1726 states generated, 347 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 11.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 6 and the 95th percentile is 4).
+Finished in 00s at (2026-10-23 15:07:36)
