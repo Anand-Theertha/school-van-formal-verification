@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use these artifacts, please cite them as below."
+title: "School Van Tracking: Ordering Guarantees Under Unreliable Networks"
+type: software
+version: v1.2.0
+date-released: 2026-11-03
+authors:
+  - family-names: Theertha
+    given-names: Anand
+doi: 10.5281/zenodo.23567441
+repository-code: "https://github.com/Anand-Theertha/school-van-formal-verification"
+license: [MIT, CC-BY-4.0]
+keywords: [formal verification, TLA+, model checking, GPS telemetry, message ordering]

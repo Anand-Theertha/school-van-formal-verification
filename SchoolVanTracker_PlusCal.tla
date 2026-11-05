@@ -1,25 +1,23 @@
 ---------------- MODULE SchoolVanTracker_PlusCal ----------------
+\* PlusCal sketch aligned with SchoolVanTracker_Guarded (not the baseline).
+\* Algorithm is commented out; translate in the Toolbox to generate a TLA module.
 EXTENDS Naturals, TLC
 
 (* --algorithm SchoolVanTracker
 
 variables
-    \* Global State Variables
     driver_seq = 0;
     network_buffer = {};
     server_ack_seq = 0;
+    parent_channel = {};
     parent_view_seq = 0;
 
-\* Define our bounds and properties just like in raw TLA+
 define
     MaxSeq == 3
     MonotonicDisplay == [][parent_view_seq' >= parent_view_seq]_parent_view_seq
     NoFutureFrame == parent_view_seq <= driver_seq
-    FinalDelivery == (driver_seq = MaxSeq) ~> (parent_view_seq = MaxSeq)
 end define;
 
-\* PROCESS 1: The Driver Client
-\* Generates monotonic sequences and pushes them to the network.
 fair process Driver = "Driver"
 begin
     DriveLoop:
@@ -29,33 +27,33 @@ begin
         end while;
 end process;
 
-\* PROCESS 2: The Server and Parent (The Fix)
-\* Reads from the unordered network and applies sequence guards.
-\* We do not remove messages from the buffer to simulate duplication/re-delivery.
-fair process ServerAndParent = "ServerAndParent"
+fair process Server = "Server"
 begin
-    ReceiveLoop:
+    ServerLoop:
         while TRUE do
-            \* Wait until there is at least one message in flight
             await network_buffer /= {};
-            
-            \* Non-deterministically pick ANY message in flight (simulates out-of-order)
             with m \in network_buffer do
-                \* Server Guard: only accept if strictly newer
                 if m > server_ack_seq then
                     server_ack_seq := m;
-                    
-                    \* Parent Guard: only update display if strictly newer
-                    if m > parent_view_seq then
-                        parent_view_seq := m;
-                    end if;
+                    parent_channel := parent_channel \cup {m};
                 end if;
             end with;
         end while;
 end process;
 
-\* PROCESS 3: The Unreliable Network
-\* Simulates weak mobile connections by non-deterministically dropping packets.
+fair process Parent = "Parent"
+begin
+    ParentLoop:
+        while TRUE do
+            await parent_channel /= {};
+            with m \in parent_channel do
+                if m > parent_view_seq then
+                    parent_view_seq := m;
+                end if;
+            end with;
+        end while;
+end process;
+
 fair process Network = "Network"
 begin
     DropLoop:
