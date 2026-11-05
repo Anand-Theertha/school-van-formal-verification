@@ -25,8 +25,10 @@ map. Raw TLC logs are in ``tlc/``; see ``MODELING.md``.
 Repository Contents
 -------------------
 
-* ``techrxiv/School_Van_Tracking_Preprint.tex`` — Current paper (canonical
-  source); see ``techrxiv/SUBMISSION.md`` for building the PDF.
+* ``paper/School_Van_Tracking.pdf`` — Current technical report (v1.2.0). Start
+  here.
+* ``paper/School_Van_Tracking.tex`` — LaTeX source of the report. Rebuild with
+  ``pdflatex School_Van_Tracking.tex`` (run twice) or on Overleaf.
 * ``School_Van_Tracking-Report-Draft.md`` — Working Markdown draft of the same
   report.
 * ``School_Van_Tracking-Report.pdf`` — v1.0 technical report; predates the

@@ -76,5 +76,5 @@ runs explore the full state space.
 
 ## Report / PDF
 
-The paper source is `techrxiv/School_Van_Tracking_Preprint.tex`. Its appendix
+The paper is `paper/School_Van_Tracking.pdf` (source: `paper/School_Van_Tracking.tex`). Its appendix
 excerpts `tlc/baseline-monotonic-2026-10-23.txt`; the full logs live in `tlc/`.
