@@ -29,10 +29,8 @@ Repository Contents
   here.
 * ``paper/School_Van_Tracking.tex`` — LaTeX source of the report. Rebuild with
   ``pdflatex School_Van_Tracking.tex`` (run twice) or on Overleaf.
-* ``School_Van_Tracking-Report-Draft.md`` — Working Markdown draft of the same
-  report.
-* ``School_Van_Tracking-Report.pdf`` — v1.0 technical report; predates the
-  two-channel model and guard ablation.
+* The v1.0 report (single-channel model) is archived with the v1.0.0 release:
+  https://doi.org/10.5281/zenodo.23567442
 * ``SchoolVanTracker_Baseline.tla`` — No guards.
 * ``SchoolVanTracker_ServerGuarded.tla`` / ``SchoolVanTracker_ParentGuarded.tla``
   — Ablation (one guard each).
