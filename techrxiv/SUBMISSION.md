@@ -11,8 +11,8 @@ This folder contains a preprint-ready source file for [TechRxiv](https://www.tec
 
 Optional supplementary (same submission or linked in metadata):
 
-- GitHub release **v1.2**: https://github.com/Anand-Theertha/school-van-formal-verification  
-- Zenodo archive: https://doi.org/10.5281/zenodo.23567442  
+- GitHub release **v1.2.0**: https://github.com/Anand-Theertha/school-van-formal-verification  
+- Zenodo archive: https://doi.org/10.5281/zenodo.23567441  
 
 Do **not** submit the repository alone; TechRxiv declines stand-alone code/dataset posts without a manuscript.
 
@@ -72,4 +72,4 @@ TechRxiv typically posts within **four business days** after moderation. You rec
 
 ## Relation to repo draft
 
-`School_Van_Tracking-Report-Draft.md` is the working markdown report (draft v0.4). The LaTeX preprint here is the submission-shaped version: introduction with contributions, index terms, formal references, data availability, and appendix log excerpt. After TechRxiv posting, add the TechRxiv DOI/URL to `README.rst` and the Zenodo record if you mint a new artifact version.
+`School_Van_Tracking-Report-Draft.md` is the working markdown report (draft v0.5). The LaTeX preprint here is the submission-shaped version: introduction with contributions, index terms, formal references, data availability, and appendix log excerpt. After TechRxiv posting, add the TechRxiv DOI/URL to `README.rst` and the Zenodo record if you mint a new artifact version.

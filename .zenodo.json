@@ -1,0 +1,21 @@
+{
+  "title": "School Van Tracking: Ordering Guarantees Under Unreliable Networks (TLA+ artifacts and preprint)",
+  "upload_type": "software",
+  "version": "v1.2.0",
+  "description": "<p>Formal verification artifacts and preprint for a school-van GPS telemetry protocol. Two-channel TLA+ model (lossy uplink, unordered downlink with redelivery), a guard ablation (no guard, server-only, parent-only, both), unedited TLC logs, a PlusCal sketch, and the TechRxiv preprint source. TLC finds a seven-state MonotonicDisplay violation in the baseline; the parent display guard alone is sufficient for monotonicity in this model, while a server-only guard is not.</p><p>Code and specifications: MIT. Paper and documentation: CC BY 4.0 (see LICENSE and LICENSE-docs).</p>",
+  "creators": [
+    { "name": "Theertha, Anand" }
+  ],
+  "keywords": [
+    "formal verification", "TLA+", "model checking", "TLC",
+    "GPS telemetry", "message ordering", "mobile networks", "school transportation"
+  ],
+  "license": "cc-by-4.0",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Anand-Theertha/school-van-formal-verification/tree/v1.2.0",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ]
+}

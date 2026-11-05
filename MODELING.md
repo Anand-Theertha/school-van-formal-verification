@@ -17,6 +17,10 @@ anything about real cellular networks or production code by itself.
 **Production mapping:** Redis pub/sub on the downlink may preserve order from a
 single publisher. The model uses an **unordered** downlink because **multiple
 nodes** can publish toward parents, so deliveries need not match send order.
+The model itself has a single server with one shared `server_ack_seq`; downlink
+reordering is an **assumption** of the channel, not derived from modeled nodes.
+The server-only violation follows directly from that assumption: the server
+forwards 1 then 2 in order, and the set-based `parent_channel` redelivers 1.
 
 ## Actions (all variants)
 
@@ -39,8 +43,8 @@ not remove messages from channel sets.
 | `SchoolVanTracker_ParentGuarded` | No | Yes |
 | `SchoolVanTracker_Guarded` | Yes | Yes |
 
-**Finding (TLC, 2026-10-23):** Under this unordered downlink, **only the parent
-display guard is necessary** for `MonotonicDisplay`. Server-only guard still
+**Finding (TLC, 2026-10-23):** Under this unordered downlink, **the parent
+display guard alone is sufficient** for `MonotonicDisplay`. Server-only guard still
 violates (stale frame on `parent_channel` after parent shows a newer seq). Both
 guards match production for server/history consistency, not because the server
 guard alone secures the map.

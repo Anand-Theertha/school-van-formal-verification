@@ -1,15 +1,15 @@
 # School Van Tracking: Ordering Guarantees Under Unreliable Networks
 
-Technical report, draft **v0.4** (repository release **v1.2**).  
-**Anand Theertha** | October 2026  
+Technical report, draft **v0.5** (repository release **v1.2.0**).  
+**Anand Theertha** | November 2026  
 Repository: https://github.com/Anand-Theertha/school-van-formal-verification  
-Artifact DOI: https://doi.org/10.5281/zenodo.23567442 (new Zenodo version for v1.2 when published)
+Artifact DOI (all versions): https://doi.org/10.5281/zenodo.23567441
 
 ---
 
 ## Abstract
 
-We study the telemetry protocol of a real-time school-van tracking app, where a driver's phone streams GPS positions to parents over unreliable mobile networks. Using TLA+ and the TLC model checker, we model **two unordered channels** (driver→server and server→parent) with **loss on the uplink** and **unbounded redelivery** of the same sequence number (receives do not remove frames from the channel sets). We check that the position shown to a parent never moves backward (`MonotonicDisplay`). TLC reports a violation in the unguarded baseline; a **seven-state** counterexample is documented with raw logs in the repository. An **ablation study** shows that, under this downlink model, **only the parent display guard is necessary** to restore monotonicity—a server-only guard still allows the map to jump backward when frames 1 and 2 both sit on the parent channel. Production uses **both** guards so server state and ancillary consumers (e.g. history) stay consistent, not because the server guard alone secures the map. We also tested the implementation with injected duplicate, reordered, and batched frames. We state what the model does and does not prove, and outline v2 work (session epoch, shared ack state, acknowledgements).
+We study the telemetry protocol of a real-time school-van tracking app, where a driver's phone streams GPS positions to parents over unreliable mobile networks. Using TLA+ and the TLC model checker, we model **two unordered channels** (driver→server and server→parent) with **loss on the uplink** and **unbounded redelivery** of the same sequence number (receives do not remove frames from the channel sets). We check that the position shown to a parent never moves backward (`MonotonicDisplay`). TLC reports a violation in the unguarded baseline; a **seven-state** counterexample is documented with raw logs in the repository. An **ablation study** shows that, under this downlink model, **the parent display guard alone is sufficient** to restore monotonicity—a server-only guard still allows the map to jump backward when frames 1 and 2 both sit on the parent channel. Production uses **both** guards so server state and ancillary consumers (e.g. history) stay consistent, not because the server guard alone secures the map. We also tested the implementation with injected duplicate, reordered, and batched frames. We state what the model does and does not prove, and outline v2 work (session epoch, shared ack state, acknowledgements).
 
 ---
 
@@ -57,7 +57,7 @@ We use **two** channels:
 - **Uplink (`network_buffer`):** driver → ingestion server; **lossy** (`NetworkDrop`).
 - **Downlink (`parent_channel`):** server → parent; **unordered** in the model.
 
-**Deployment note:** Redis pub/sub may preserve order from a **single** publisher. We model an unordered downlink because **multiple ingestion nodes** can publish toward the same trip, so parents need not see frames in send order.
+**Deployment note:** Redis pub/sub may preserve order from a **single** publisher. We model an unordered downlink because **multiple ingestion nodes** can publish toward the same trip, so parents need not see frames in send order. Multiple publishers are not modeled explicitly: there is a single server with one shared `server_ack_seq`, so downlink reordering is an assumption of the channel rather than a consequence of modeled nodes.
 
 **Duplication** is not modeled as separate “duplicate” actions. Each channel is a **set of sequence numbers**; **receives do not remove** an element, so the same `seq_id` can be delivered arbitrarily many times (redelivery). We do not model two distinct in-flight copies of the same `seq_id` in one set (a multiset would be needed for that).
 
@@ -115,7 +115,7 @@ NoFutureFrame == parent_view_seq <= driver_seq
 FinalDelivery == (driver_seq = MaxSeq) ~> (parent_view_seq = MaxSeq)
 ```
 
-`FinalDelivery` requires stronger fairness, bounded loss, or retransmission. Section 9 discusses acknowledgements for v2. The v1 TLC runs check **`MonotonicDisplay`** and **`NoFutureFrame`** only.
+`FinalDelivery` requires stronger fairness, bounded loss, or retransmission. Section 9 discusses acknowledgements for v2. The TLC runs in this release check **`MonotonicDisplay`** and **`NoFutureFrame`** only.
 
 ---
 
@@ -150,7 +150,7 @@ At error: **282** states generated, **122** distinct (search stopped with **64**
 
 †First violation stops exploration early; distinct counts are **not** the full state graph. Full exploration on passing runs: **347** distinct (parent-only) matches the unguarded state space size with a display guard; **199** distinct when both guards prune uplink forwarding.
 
-**Conclusion:** Under an unordered `parent_channel`, the **parent guard is necessary** for `MonotonicDisplay`. The **server guard alone does not** prevent backward map updates. Both guards remain appropriate in production for server/history consistency and stale-frame filtering on the uplink.
+**Conclusion:** Under an unordered `parent_channel`, the **parent guard alone is sufficient** for `MonotonicDisplay`; the **server guard alone is not**. The server-only failure follows directly from the channel assumption: the server forwards 1 then 2 in order, and the set-based `parent_channel` redelivers 1 after the parent has shown 2. Both guards remain appropriate in production for server/history consistency and stale-frame filtering on the uplink.
 
 *“Holds” means no violation within `MaxSeq = 3` and the stated channel model; it is not a proof for unbounded sequences or all real-network behaviors.*
 
@@ -166,7 +166,7 @@ At error: **282** states generated, **122** distinct (search stopped with **64**
 
 **Parent guard:** Render a frame only if its sequence number is greater than the last one displayed.
 
-TLC ablation (Section 6.2) justifies treating the **parent guard as necessary for monotonic display** under the modeled downlink; the **server guard** supports consistent server state and consumers other than the live map.
+TLC ablation (Section 6.2) shows the **parent guard is sufficient for monotonic display** under the modeled downlink; the **server guard** supports consistent server state and consumers other than the live map.
 
 ---
 
@@ -178,7 +178,7 @@ TLC ablation (Section 6.2) justifies treating the **parent guard as necessary fo
 | T2 | Duplicate frame | No visible change | UI flickers | Ignored |
 | T3 | Burst after reconnect | Final position correct | Jumps | Correct |
 | T4 | Driver restart, counter resets | Frames accepted | Accepted | Dropped (stale) |
-| T5 | Two nodes concurrent | No backward jump | Jumps | Race condition |
+| T5 | Two nodes concurrent | No backward jump | Jumps | Jumps (cross-node race) |
 | T6 | Last frame lost before reconnect | Final position shown | Stalls | Stalls |
 
 ---
@@ -195,7 +195,7 @@ TLC ablation (Section 6.2) justifies treating the **parent guard as necessary fo
 
 ## 10. Related work
 
-Applied case study. TLA+ and TLC: Lamport, *Specifying Systems*. Kleppmann, *Designing Data-Intensive Applications* (ordering, idempotency). Lamport, “Time, Clocks, and the Ordering of Events in a Distributed System” (1978). Beschastnikh et al., “Debugging distributed systems” (*CACM*, 2016).
+Applied case study. TLA+ and TLC: Lamport, *Specifying Systems*. Kleppmann, *Designing Data-Intensive Applications* (ordering, idempotency). Lamport, “Time, Clocks, and the Ordering of Events in a Distributed System” (1978). Beschastnikh, Wang, Brun, and Ernst, “Debugging distributed systems: Challenges and options for validation and debugging” (*CACM* 59(8):32–37, 2016).
 
 ---
 
@@ -232,3 +232,4 @@ For print/PDF appendix, paste these files verbatim or link to the tagged release
 |-------|---------|
 | v0.3 | Initial structure; placeholder TLC; merged-channel narrative |
 | v0.4 | Two-channel TLA+ specs; real TLC logs; guard ablation; parent-guard necessity; align actions/bounds with `.tla`; soften “proves network” wording |
+| v0.5 | Concept DOI; “sufficient” rather than “necessary” wording for the parent guard; state that downlink reordering is a channel assumption; T5 result; citation fix |

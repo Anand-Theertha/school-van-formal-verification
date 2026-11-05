@@ -1,8 +1,8 @@
 School Van Tracking: Ordering Guarantees Under Unreliable Networks
 ================================================================
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.23567442.svg
-   :target: https://doi.org/10.5281/zenodo.23567442
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.23567441.svg
+   :target: https://doi.org/10.5281/zenodo.23567441
    :alt: DOI
 
 Formal verification artifacts and technical report for the school-van tracking
@@ -16,7 +16,7 @@ We study the telemetry protocol of a real-time school-van tracking app, where a
 driver's phone streams GPS positions to parents over unreliable mobile networks.
 Using TLA+ and TLC, we model unordered driver-to-server and server-to-parent
 channels with unbounded redelivery. TLC finds a ``MonotonicDisplay`` violation in
-the baseline; **the parent display guard alone** restores monotonicity in this
+the baseline; **the parent display guard alone** is sufficient for monotonicity in this
 model, while a server-only guard does not. Production uses both guards for server
 state and ancillary consumers, not because the server guard alone protects the
 map. Raw TLC logs are in ``tlc/``; see ``MODELING.md``.
@@ -57,3 +57,11 @@ TLA+ Toolbox, VS Code TLA+ extension, or ``tla2tools.jar``. From the repo root:
    java -cp tla2tools.jar tlc2.TLC -config SchoolVanTracker_Guarded.cfg SchoolVanTracker_Guarded.tla
 
 See ``tlc/README.md``. ``CHECK_DEADLOCK FALSE`` on all configs.
+
+
+License
+-------
+
+TLA+/PlusCal specifications, TLC configurations, and TLC logs: MIT (``LICENSE``).
+Paper, report, and documentation: CC BY 4.0 (``LICENSE-docs``).
+Citation metadata: ``CITATION.cff`` and ``.zenodo.json``.

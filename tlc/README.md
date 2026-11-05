@@ -1,7 +1,6 @@
 # TLC logs
 
-Unedited TLC console output from local runs. TLC **2.20** (extension-bundled
-`tla2tools.jar`), **2026-10-23**.
+Unedited TLC console output from local runs. TLC **2.20** (extension-bundled `tla2tools.jar`), **2026-10-23**.
 
 | File | Module | Expected result |
 |------|--------|-----------------|
@@ -20,6 +19,11 @@ java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -config SchoolVanTracker_Serv
 java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -config SchoolVanTracker_ParentGuarded.cfg SchoolVanTracker_ParentGuarded.tla
 java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -config SchoolVanTracker_Guarded.cfg SchoolVanTracker_Guarded.tla
 ```
+
+`baseline-monotonic-2026-10-23.txt` was captured from the VS Code extension's
+run (TLC `-tool` message format, hence the `@!@!@` markers); the other three
+are plain console output from the commands above. The results are identical
+either way.
 
 Use the `tla2tools.jar` from the TLA+ VS Code extension `tools/` folder or a
 release from [tlaplus/tlaplus](https://github.com/tlaplus/tlaplus/releases).
